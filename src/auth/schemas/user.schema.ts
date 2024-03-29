@@ -3,10 +3,10 @@ import { Document } from 'mongoose';
 import moment, { Moment } from 'moment';
 import { Role } from 'src/common/interfaces/role.interface';
 
-export type AdminDocument = Admin & Document;
+export type UserDocument = User & Document;
 
 @Schema()
-export class Admin {
+export class User {
   @Prop({ type: String, required: false })
   firstName: string;
 
@@ -35,4 +35,4 @@ export class Admin {
   createdAt: Moment;
 }
 
-export const AdminSchema = SchemaFactory.createForClass(Admin);
+export const UserSchema = SchemaFactory.createForClass(User);

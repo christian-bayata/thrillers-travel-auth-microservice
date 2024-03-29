@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { existsSync, mkdirSync } from 'fs';
 import * as path from 'path';
 import { AuthModule } from './auth/auth.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AuthModule } from './auth/auth.module';
       isGlobal: true,
     }),
     AuthModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
