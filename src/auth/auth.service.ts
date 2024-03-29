@@ -17,7 +17,7 @@ export class AuthService {
    * @returns {Promise<any>}
    */
 
-  async createUser(createUserDto: CreateUserDto): Promise<any> {
+  async createNewUser(createUserDto: CreateUserDto): Promise<any> {
     try {
     } catch (error) {
       throw new RpcException(

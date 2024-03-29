@@ -9,7 +9,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @MessagePattern({ cmd: SubscriberPattern.CREATE_NEW_USER })
-  async createUser(@Payload() createUserDto: CreateUserDto): Promise<any> {
-    return await this.authService.createUser(createUserDto);
+  async createNewUser(@Payload() createUserDto: CreateUserDto): Promise<any> {
+    return await this.authService.createNewUser(createUserDto);
   }
 }
