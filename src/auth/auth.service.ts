@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto, LoginDto } from './dto/create-user.dto';
 import { ErrorResponse } from 'src/common/interfaces/error-response.interface';
 import { RpcException } from '@nestjs/microservices';
 import { AuthRepository } from './auth.repository';
@@ -9,6 +9,10 @@ import { Role } from 'src/common/interfaces/role.interface';
 import { EmailService } from 'src/email/email.service';
 import { MailDispatcherDto } from 'src/email/dto/send-mail.dto';
 import { accountActivationTemplate } from 'src/email/templates/account-acivation';
+import { randomUUID } from 'crypto';
+import { JwtService } from '@nestjs/jwt';
+import * as moment from 'moment';
+import { forgotPasswordTemplate } from 'src/email/templates/forgot-password.template';
 
 @Injectable()
 export class AuthService {
@@ -16,21 +20,23 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly authRepository: AuthRepository,
     private readonly emailService: EmailService,
+    private jwtService: JwtService,
   ) {}
 
   private readonly ISE: string = 'Internal Server Error';
 
   /**
-   * @Responsibility: auth service emthod to create a new user
+   * @Responsibility: auth service method to create a new user
    *
    * @param createUserDto
    * @returns {Promise<any>}
    */
 
   async createNewUser(createUserDto: CreateUserDto): Promise<any> {
+    let { firstName, lastName, email, password } = createUserDto;
     try {
       const userExists = await this.authRepository.findUser({
-        email: createUserDto?.email,
+        email: email,
       });
       if (userExists) {
         throw new RpcException(
@@ -42,16 +48,14 @@ export class AuthService {
       }
 
       /* Hash password before storing it */
-      createUserDto.password = createUserDto?.password
-        ? hashSync(createUserDto?.password, genSaltSync())
-        : null;
+      password = password ? hashSync(password, genSaltSync()) : null;
 
       function userData() {
         return {
-          firstName: createUserDto?.firstName,
-          lastName: createUserDto?.lastName,
-          email: createUserDto?.email,
-          password: createUserDto?.password,
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          password: password,
           role: Role.RWX_USER, // By default, every user has read, write, execute privileges
         };
       }
@@ -70,6 +74,164 @@ export class AuthService {
         };
       }
 
+      await this.emailService.emailDispatcher(emailDispatcherPayload());
+
+      return theUser;
+    } catch (error) {
+      throw new RpcException(
+        this.errR({
+          message: error?.message ? error.message : this.ISE,
+          status: error?.error?.status,
+        }),
+      );
+    }
+  }
+
+  /**
+   * @Responsibility: auth service method to login a user
+   *
+   * @param loginDto
+   * @returns {Promise<any>}
+   */
+
+  async login(loginDto: LoginDto): Promise<any> {
+    try {
+      const { email, password } = loginDto;
+
+      let theUser = await this.authRepository.findUser(
+        { email },
+        '_id email password role',
+      );
+
+      if (!theUser) {
+        throw new RpcException(
+          this.errR({
+            message: 'User not found',
+            status: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
+
+      /* Check if password is valid */
+      const validPassword = compareSync(password, theUser?.password);
+
+      if (!validPassword) {
+        throw new RpcException(
+          this.errR({
+            message: 'Invalid Password',
+            status: HttpStatus.BAD_REQUEST,
+          }),
+        );
+      }
+
+      /* Generate jwt token for auth */
+      function jwtPayloadForAuth() {
+        return {
+          user_id: theUser?._id,
+        };
+      }
+
+      return {
+        authToken: this.jwtService.sign(jwtPayloadForAuth()),
+      };
+    } catch (error) {
+      throw new RpcException(
+        this.errR({
+          message: error?.message ? error.message : this.ISE,
+          status: error?.error?.status,
+        }),
+      );
+    }
+  }
+
+  /**
+   * @Responsibility: auth service method to activae user account
+   *
+   * @param id
+   * @returns {Promise<any>}
+   */
+
+  async accountActivation(id: string): Promise<any> {
+    try {
+      const theUser = await this.authRepository.findUser({ _id: id });
+      if (!theUser) {
+        return {
+          userExists: false,
+        };
+      } else {
+        await this.authRepository.updateUser(
+          { _id: theUser?._id },
+          { isVerified: true },
+        );
+
+        return {
+          userExists: true,
+        };
+      }
+    } catch (error) {
+      throw new RpcException(
+        this.errR({
+          message: error?.message ? error.message : this.ISE,
+          status: error?.error?.status,
+        }),
+      );
+    }
+  }
+
+  /**
+   * @Responsibility: auth service method to send reset link to user
+   *
+   * @param email
+   * @returns {Promise<any>}
+   */
+
+  async forgotPassword(email: string): Promise<any> {
+    try {
+      const theUser = await this.authRepository.findUser({ email });
+
+      if (!theUser) {
+        throw new RpcException(
+          this.errR({
+            message: 'User not found',
+            status: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
+
+      /* Generate uuid token */
+      const token = randomUUID().split('-').join('');
+
+      const findUserPwdToken = await this.authRepository.findResetPwdToken({
+        email,
+      });
+
+      if (!findUserPwdToken) {
+        await this.authRepository.createResetPwdToken({
+          email,
+          token,
+          expiresIn: moment().utc().add(1, 'hour').toDate(),
+        });
+      } else {
+        await this.authRepository.updateResetPwdToken(
+          { email },
+          { token, expiresIn: moment().utc().add(1, 'hour').toDate() },
+        );
+      }
+
+      const resetPasswordLink = `${this.configService.get<string>(
+        'FRONTEND_BASE_URL',
+      )}/auth/reset-password/${token}`;
+
+      function emailDispatcherPayload(): MailDispatcherDto {
+        return {
+          to: `${theUser?.email}`,
+          from: 'Thrillers <smtp2@hrdek.com>',
+          subject: 'Password Reset Token',
+          text: 'Password Reset Token',
+          html: forgotPasswordTemplate(theUser?.firstName, resetPasswordLink),
+        };
+      }
+      /* Send email to user */
       await this.emailService.emailDispatcher(emailDispatcherPayload());
 
       return {};
