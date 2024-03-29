@@ -1,6 +1,7 @@
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import moment, { Moment } from 'moment';
+import * as moment from 'moment';
+import { Moment } from 'moment';
 import { Role } from 'src/common/interfaces/role.interface';
 
 export type UserDocument = User & Document;
