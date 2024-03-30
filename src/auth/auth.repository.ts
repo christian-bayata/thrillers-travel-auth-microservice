@@ -103,4 +103,15 @@ export class AuthRepository {
       new: true,
     });
   }
+
+  /**
+   * @Responsibility: Repo to remove user reset password details
+   *
+   * @param where
+   * @returns {Promise<PasswordResetDocument>}
+   */
+
+  async removeResetPwdToken(where: any): Promise<PasswordResetDocument> {
+    return await this.passwordResetModel.findByIdAndDelete(where);
+  }
 }

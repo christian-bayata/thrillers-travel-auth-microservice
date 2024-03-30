@@ -13,6 +13,8 @@ import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as moment from 'moment';
 import { forgotPasswordTemplate } from 'src/email/templates/forgot-password.template';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -234,6 +236,145 @@ export class AuthService {
       /* Send email to user */
       await this.emailService.emailDispatcher(emailDispatcherPayload());
 
+      return { token };
+    } catch (error) {
+      throw new RpcException(
+        this.errR({
+          message: error?.message ? error.message : this.ISE,
+          status: error?.error?.status,
+        }),
+      );
+    }
+  }
+
+  /**
+   * @Responsibility: auth service method to reset user password
+   *
+   * @param resetPasswordDto
+   * @returns {Promise<any>}
+   */
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<any> {
+    try {
+      let { token, password, confirmPassword } = resetPasswordDto;
+
+      const getToken = await this.authRepository.findResetPwdToken({ token });
+      if (!getToken) {
+        throw new RpcException(
+          this.errR({
+            message: 'Invalid token',
+            status: HttpStatus.BAD_REQUEST,
+          }),
+        );
+      }
+
+      const theUser = await this.authRepository.findUser({
+        email: getToken?.email,
+      });
+      if (!theUser) {
+        throw new RpcException(
+          this.errR({
+            message: 'User not found',
+            status: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
+
+      if (password !== confirmPassword) {
+        throw new RpcException(
+          this.errR({
+            message: 'Passwords do not match',
+            status: HttpStatus.BAD_REQUEST,
+          }),
+        );
+      }
+
+      /* Check if token has expired */
+      if (moment.utc().toDate() > getToken?.expiresIn) {
+        throw new RpcException(
+          this.errR({
+            message: 'Token has expired. Please request a new one',
+            status: HttpStatus.BAD_REQUEST,
+          }),
+        );
+      }
+
+      /* Update password of user */
+      password = hashSync(password, genSaltSync());
+      await this.authRepository.updateUser(
+        { email: getToken?.email },
+        { password },
+      );
+
+      await this.authRepository.removeResetPwdToken(getToken?._id);
+
+      return {};
+    } catch (error) {
+      throw new RpcException(
+        this.errR({
+          message: error?.message ? error.message : this.ISE,
+          status: error?.error?.status,
+        }),
+      );
+    }
+  }
+
+  /**
+   * @Responsibility: auth service method to retrieve user profile
+   *
+   * @param userId
+   * @returns {Promise<any>}
+   */
+
+  async userProfile(userId: string): Promise<any> {
+    try {
+      const theUser = await this.authRepository.findUser({ _id: userId });
+      if (!theUser) {
+        throw new RpcException(
+          this.errR({
+            message: 'User not found',
+            status: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
+
+      const { password, ...otherUserData } = theUser;
+
+      return otherUserData;
+    } catch (error) {
+      throw new RpcException(
+        this.errR({
+          message: error?.message ? error.message : this.ISE,
+          status: error?.error?.status,
+        }),
+      );
+    }
+  }
+
+  /**
+   * @Responsibility: auth service method to updating a user
+   *
+   * @param updateUserDto
+   * @returns {Promise<any>}
+   */
+
+  async updateUser(updateUserDto: UpdateUserDto): Promise<any> {
+    try {
+      const theUser = await this.authRepository.findUser({
+        _id: updateUserDto?.userId,
+      });
+      if (!theUser) {
+        throw new RpcException(
+          this.errR({
+            message: 'User not found',
+            status: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
+
+      const { userId, ...otherProps } = updateUserDto;
+
+      await this.authRepository.updateUser({ _id: theUser?._id }, otherProps);
       return {};
     } catch (error) {
       throw new RpcException(

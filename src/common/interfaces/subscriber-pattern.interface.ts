@@ -3,4 +3,7 @@ export enum SubscriberPattern {
   LOGIN = 'login',
   ACCOUNT_ACTIVATION = 'account_activation',
   FORGOT_PASSWORD = 'forgot_password',
+  RESET_PASSWORD = 'reset_password',
+  USER_PROFILE = 'user_profile',
+  UPDATE_USER = 'update_user',
 }

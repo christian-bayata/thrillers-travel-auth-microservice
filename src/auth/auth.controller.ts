@@ -3,6 +3,8 @@ import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthService } from './auth.service';
 import { CreateUserDto, LoginDto } from './dto/create-user.dto';
 import { SubscriberPattern } from '../common/interfaces/subscriber-pattern.interface';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller()
 export class AuthController {
@@ -26,5 +28,22 @@ export class AuthController {
   @MessagePattern({ cmd: SubscriberPattern.FORGOT_PASSWORD })
   async forgotPassword(@Payload() email: string): Promise<any> {
     return await this.authService.forgotPassword(email);
+  }
+
+  @MessagePattern({ cmd: SubscriberPattern.RESET_PASSWORD })
+  async resetPassword(
+    @Payload() resetPasswordDto: ResetPasswordDto,
+  ): Promise<any> {
+    return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @MessagePattern({ cmd: SubscriberPattern.USER_PROFILE })
+  async userProfile(@Payload() userId: string): Promise<any> {
+    return await this.authService.userProfile(userId);
+  }
+
+  @MessagePattern({ cmd: SubscriberPattern.UPDATE_USER })
+  async updateUser(@Payload() updateUserDto: UpdateUserDto): Promise<any> {
+    return await this.authService.updateUser(updateUserDto);
   }
 }
