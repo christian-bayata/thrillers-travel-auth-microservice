@@ -65,18 +65,19 @@ export class AuthService {
       let theUser = await this.authRepository.createUser(userData());
 
       /* Send an email to the user for eventual verification */
-      const activationLink = `${this.configService.get('FRONTEND_BASE_URL')}/activate-account/${theUser?._id}`;
-      function emailDispatcherPayload(): MailDispatcherDto {
-        return {
-          to: `${theUser?.email}`,
-          from: `Thrillers <smtp2@hrdek.com>`,
-          subject: 'Account Activation',
-          text: 'Account Activation',
-          html: accountActivationTemplate(theUser?.firstName, activationLink),
-        };
-      }
+      /* Please add yoour own smtp credentials */
+      // const activationLink = `${this.configService.get('FRONTEND_BASE_URL')}/activate-account/${theUser?._id}`;
+      // function emailDispatcherPayload(): MailDispatcherDto {
+      //   return {
+      //     to: `${theUser?.email}`,
+      //     from: `Thrillers <smtp2@server>`,
+      //     subject: 'Account Activation',
+      //     text: 'Account Activation',
+      //     html: accountActivationTemplate(theUser?.firstName, activationLink),
+      //   };
+      // }
 
-      await this.emailService.emailDispatcher(emailDispatcherPayload());
+      // await this.emailService.emailDispatcher(emailDispatcherPayload());
 
       return theUser;
     } catch (error) {
@@ -225,17 +226,17 @@ export class AuthService {
         'FRONTEND_BASE_URL',
       )}/auth/reset-password/${token}`;
 
-      function emailDispatcherPayload(): MailDispatcherDto {
-        return {
-          to: `${theUser?.email}`,
-          from: 'Thrillers <smtp2@hrdek.com>',
-          subject: 'Password Reset Token',
-          text: 'Password Reset Token',
-          html: forgotPasswordTemplate(theUser?.firstName, resetPasswordLink),
-        };
-      }
-      /* Send email to user */
-      await this.emailService.emailDispatcher(emailDispatcherPayload());
+      // function emailDispatcherPayload(): MailDispatcherDto {
+      //   return {
+      //     to: `${theUser?.email}`,
+      //     from: 'Thrillers <smtp2@hrdek.com>',
+      //     subject: 'Password Reset Token',
+      //     text: 'Password Reset Token',
+      //     html: forgotPasswordTemplate(theUser?.firstName, resetPasswordLink),
+      //   };
+      // }
+      // /* Send email to user */
+      // await this.emailService.emailDispatcher(emailDispatcherPayload());
 
       return { token };
     } catch (error) {
