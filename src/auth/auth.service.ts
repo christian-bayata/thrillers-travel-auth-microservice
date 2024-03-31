@@ -70,7 +70,7 @@ export class AuthService {
       function emailDispatcherPayload(): MailDispatcherDto {
         return {
           to: `${theUser?.email}`,
-          from: `${this.configService.get('SMTP_FROM')}}`,
+          from: `Please add your valid SMTP server here`,
           subject: 'Account Activation',
           text: 'Account Activation',
           html: accountActivationTemplate(theUser?.firstName, activationLink),
@@ -275,7 +275,7 @@ export class AuthService {
       function emailDispatcherPayload(): MailDispatcherDto {
         return {
           to: `${theUser?.email}`,
-          from: `${this.configService.get('SMTP_FROM')}}`,
+          from: `Please add your valid SMTP server here`,
           subject: 'Password Reset Token',
           text: 'Password Reset Token',
           html: forgotPasswordTemplate(theUser?.firstName, resetPasswordLink),
@@ -286,6 +286,7 @@ export class AuthService {
 
       return { token };
     } catch (error) {
+      console.log(error);
       throw new RpcException(
         this.errR({
           message: error?.message ? error.message : this.ISE,
