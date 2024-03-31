@@ -23,19 +23,18 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new AuthMsLogger());
 
-  /* This is because Render requires http port binding for deployment */
+  // /* This is because Render requires http port binding for deployment */
   const server = http.createServer((req, res) => {
     res.statusCode = 200;
     res.end('This is a placeholder HTTP response');
   });
 
-  // Bind the server to a port (e.g., 3000)
   server.listen(5001);
 
-  // await app.listen(3000);
-  // .finally(() =>
-  //   logger.log(`Auth Microservice: EventBus:${process.env.RABBITMQ_URL}`),
-  logger.log(`Auth Microservice: EventBus:${process.env.RABBITMQ_URL}`);
-  // );
+  await app
+    .listen()
+    .finally(() =>
+      logger.log(`Auth Microservice: EventBus:${process.env.RABBITMQ_URL}`),
+    );
 }
 bootstrap();
