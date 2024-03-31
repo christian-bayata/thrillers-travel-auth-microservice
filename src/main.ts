@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 import { AuthMsLogger } from './common/logger.interceptor';
-import { ConfigService } from '@nestjs/config';
+import * as http from 'http';
 
 async function bootstrap() {
   const logger = new Logger('AuthMicroservice');
@@ -22,6 +22,15 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(new AuthMsLogger());
+
+  /* This is because Render requires http port binding for deployment */
+  const server = http.createServer((req, res) => {
+    res.statusCode = 200;
+    res.end('This is a placeholder HTTP response');
+  });
+
+  // Bind the server to a port (e.g., 3000)
+  server.listen(5001);
 
   // await app.listen(3000);
   // .finally(() =>
