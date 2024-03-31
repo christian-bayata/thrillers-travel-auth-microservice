@@ -58,7 +58,7 @@ export class AuthService {
           lastName: lastName,
           email: email,
           password: password,
-          role: Role.RWX_USER, // By default, every user has read, write, execute privileges
+          role: Role.RWX_USER,
         };
       }
 
@@ -66,20 +66,66 @@ export class AuthService {
 
       /* Send an email to the user for eventual verification */
       /* Please add yoour own smtp credentials */
-      // const activationLink = `${this.configService.get('FRONTEND_BASE_URL')}/activate-account/${theUser?._id}`;
-      // function emailDispatcherPayload(): MailDispatcherDto {
-      //   return {
-      //     to: `${theUser?.email}`,
-      //     from: `Thrillers <smtp2@server>`,
-      //     subject: 'Account Activation',
-      //     text: 'Account Activation',
-      //     html: accountActivationTemplate(theUser?.firstName, activationLink),
-      //   };
-      // }
+      const activationLink = `${this.configService.get('FRONTEND_BASE_URL')}/activate-account/${theUser?._id}`;
+      function emailDispatcherPayload(): MailDispatcherDto {
+        return {
+          to: `${theUser?.email}`,
+          from: `${this.configService.get('SMTP_FROM')}}`,
+          subject: 'Account Activation',
+          text: 'Account Activation',
+          html: accountActivationTemplate(theUser?.firstName, activationLink),
+        };
+      }
 
-      // await this.emailService.emailDispatcher(emailDispatcherPayload());
+      await this.emailService.emailDispatcher(emailDispatcherPayload());
 
       return theUser;
+    } catch (error) {
+      throw new RpcException(
+        this.errR({
+          message: error?.message ? error.message : this.ISE,
+          status: error?.error?.status,
+        }),
+      );
+    }
+  }
+
+  /**
+   * @Responsibility: auth service method to create a new admin user
+   *
+   * @param createUserDto
+   * @returns {Promise<any>}
+   */
+
+  async createNewAdminUser(createUserDto: CreateUserDto): Promise<any> {
+    let { firstName, lastName, email, password } = createUserDto;
+    try {
+      const userExists = await this.authRepository.findUser({
+        email: email,
+      });
+      if (userExists) {
+        throw new RpcException(
+          this.errR({
+            message: 'User already exists',
+            status: HttpStatus.CONFLICT,
+          }),
+        );
+      }
+
+      /* Hash password before storing it */
+      password = password ? hashSync(password, genSaltSync()) : null;
+
+      function userData() {
+        return {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          password: password,
+          role: Role.ADMIN,
+        };
+      }
+
+      return await this.authRepository.createUser(userData());
     } catch (error) {
       throw new RpcException(
         this.errR({
@@ -226,17 +272,17 @@ export class AuthService {
         'FRONTEND_BASE_URL',
       )}/auth/reset-password/${token}`;
 
-      // function emailDispatcherPayload(): MailDispatcherDto {
-      //   return {
-      //     to: `${theUser?.email}`,
-      //     from: 'Thrillers <smtp2@hrdek.com>',
-      //     subject: 'Password Reset Token',
-      //     text: 'Password Reset Token',
-      //     html: forgotPasswordTemplate(theUser?.firstName, resetPasswordLink),
-      //   };
-      // }
-      // /* Send email to user */
-      // await this.emailService.emailDispatcher(emailDispatcherPayload());
+      function emailDispatcherPayload(): MailDispatcherDto {
+        return {
+          to: `${theUser?.email}`,
+          from: `${this.configService.get('SMTP_FROM')}}`,
+          subject: 'Password Reset Token',
+          text: 'Password Reset Token',
+          html: forgotPasswordTemplate(theUser?.firstName, resetPasswordLink),
+        };
+      }
+      /* Send email to user */
+      await this.emailService.emailDispatcher(emailDispatcherPayload());
 
       return { token };
     } catch (error) {

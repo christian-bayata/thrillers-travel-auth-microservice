@@ -15,6 +15,13 @@ export class AuthController {
     return await this.authService.createNewUser(createUserDto);
   }
 
+  @MessagePattern({ cmd: SubscriberPattern.CREATE_NEW_ADMIN_USER })
+  async createNewAdminUser(
+    @Payload() createUserDto: CreateUserDto,
+  ): Promise<any> {
+    return await this.authService.createNewAdminUser(createUserDto);
+  }
+
   @MessagePattern({ cmd: SubscriberPattern.LOGIN })
   async login(@Payload() loginDto: LoginDto): Promise<any> {
     return await this.authService.login(loginDto);
