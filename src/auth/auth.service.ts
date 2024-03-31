@@ -44,7 +44,7 @@ export class AuthService {
         throw new RpcException(
           this.errR({
             message: 'User already exists',
-            status: HttpStatus.BAD_REQUEST,
+            status: HttpStatus.CONFLICT,
           }),
         );
       }
@@ -130,6 +130,7 @@ export class AuthService {
       function jwtPayloadForAuth() {
         return {
           user_id: theUser?._id,
+          role: theUser?.role,
         };
       }
 

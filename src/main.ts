@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 import { AuthMsLogger } from './common/logger.interceptor';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const logger = new Logger('AuthMicroservice');
@@ -21,10 +22,11 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(new AuthMsLogger());
-  await app
-    .listen()
-    .finally(() =>
-      logger.log(`Auth Microservice: EventBus:${process.env.RABBITMQ_URL}`),
-    );
+
+  // await app.listen(3000);
+  // .finally(() =>
+  //   logger.log(`Auth Microservice: EventBus:${process.env.RABBITMQ_URL}`),
+  logger.log(`Auth Microservice: EventBus:${process.env.RABBITMQ_URL}`);
+  // );
 }
 bootstrap();
